@@ -116,6 +116,14 @@ _LIBCPP_HIDE_FROM_ABI bool __is_function_overridden(_Ret (*__fptr)(_Args...)) no
   uintptr_t __end   = reinterpret_cast<uintptr_t>(&__stop___lcxx_override);
   uintptr_t __ptr   = reinterpret_cast<uintptr_t>(__fptr);
 
+#  if __has_feature(ptrauth_calls)
+  // We must pass a void* to ptrauth_strip since it only accepts a pointer type. Also, in particular,
+  // we must NOT pass a function pointer, otherwise we will strip the function pointer, and then attempt
+  // to authenticate and re-sign it when casting it to a uintptr_t again, which will fail because we just
+  // stripped the function pointer.
+  __ptr = reinterpret_cast<uintptr_t>(ptrauth_strip(reinterpret_cast<void*>(__ptr), ptrauth_key_function_pointer));
+#  endif
+
   return __ptr < __start || __ptr > __end;
 }
 _LIBCPP_END_NAMESPACE_STD
